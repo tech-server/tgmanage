@@ -11,7 +11,7 @@
 //        -4 6 14 -23 24 -30 32 37 -38
 //        -4 6 14 -23 24 -30 30 35 -35
 //
-// 
+//
 //
 // Full one-liner:
 // rm planning ; g++ -std=gnu++11 -Wall -g -O3 -fopenmp -DOUTPUT_FILES=1 -o planning planning.cpp && ./planning -4 6 14 -23 24 -30 30 35 -35 ; sort -k 2,2 -k 1,1V patchlist.txt > patchlist.txt.distrosort ; cp patchlist.txt* switches.txt ../
@@ -34,6 +34,8 @@
 #include <map>
 #include <string>
 #include <queue>
+
+#define ENFORCE_DEFINED_SWITCH_PLACEMENT 1
 
 #define NUM_DISTRO 9
 #define NUM_ROWS 38
@@ -219,7 +221,7 @@ unsigned Planner::find_distance(Switch from_where, int distro)
 	// Add 5m slack.
 	return base_cost + 50;
 }
-	
+
 Inventory Planner::find_inventory(Switch from_where, int distro)
 {
 	assert(distro != -1);
@@ -264,12 +266,12 @@ Inventory Planner::find_inventory(Switch from_where, int distro)
 	//     distro_placements[distro] < 0) {
 	// 	inv.vert_chasm_crossings = 1;
 	// }
-	
+
 	// TG17: distribute evenly between distro6+7 an distro5+8
 	//if ((abs(distro_placements[distro]) <= 34) == (from_where.row >= 35)) {
 	//	inv.vert_chasm_crossings = 0;
 	//}
-	
+
 	// Gap over the scene
 	if ((abs(distro_placements[distro]) <= 10) == (from_where.row >= 11)) {
 		inv.vert_chasm_crossings = 1;
@@ -279,7 +281,7 @@ Inventory Planner::find_inventory(Switch from_where, int distro)
 	if ((abs(distro_placements[distro]) <= 18) == (from_where.row >= 19)) {
 		inv.vert_chasm_crossings = 1;
 	}
-	
+
 	// Gaps between fire gates
 	if ((abs(distro_placements[distro]) <= 27) == (from_where.row >= 28)) {
 		inv.vert_chasm_crossings = 1;
@@ -458,7 +460,8 @@ void Planner::construct_graph(const vector<Switch> &switches, Graph *g)
 	for (unsigned i = 0; i < switches.size(); ++i) {
 		add_edge(&g->switch_nodes[i], &g->sink_node, 1, 0, &g->edges);
 	}
-	
+
+
 	g->all_nodes.push_back(&g->source_node);
 	g->all_nodes.push_back(&g->sink_node);
 
@@ -812,9 +815,15 @@ try_again:
 int main(int argc, char **argv)
 {
 	int distro_placements[NUM_DISTRO];
-	
-// Set to 1 if defined switch-placements are to be "enforced"	
-#if 1
+
+// Set to 1 if defined switch-placements are to be "enforced"
+#if ENFORCE_DEFINED_SWITCH_PLACEMENT
+
+	if(argc != NUM_DISTRO + 1){
+		printf("ERR: Please enter %i distroplacements as program argument(s), when runnning with ENFORCE_DEFINED_SWITCH_PLACEMENT\n", NUM_DISTRO);
+		return 0;
+	}
+
 	for (int i = 0; i < NUM_DISTRO; ++i) {
 		distro_placements[i] = atoi(argv[i + 1]);
 	}
